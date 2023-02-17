@@ -6,8 +6,6 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.runner.controller.TelegramBotOriginal;
 
 import java.time.LocalDate;
@@ -16,7 +14,6 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static ru.runner.textConstants.ConstantsForMessages.NOTHING_TO_DELETE_MESSAGE;
@@ -43,7 +40,6 @@ public class FoodCalculationService {
         }
         return resList;
     }
-
     public FoodCalculationEntity findLastEntryByChatID(Long chatID) {
         LinkedList<FoodCalculationEntity> resList = new LinkedList<>();
         var list = repository.findAll();
@@ -54,11 +50,9 @@ public class FoodCalculationService {
         }
         return resList.getLast();
     }
-
     private boolean isEntityExists(Long chatID) {
         return findAllEntriesByChatID(chatID).size() > 0;
     }
-
     private String parseLocalDateTime(LocalDateTime localDateTime) {
         int day = localDateTime.toLocalDate().getDayOfMonth();
         String month = localDateTime.toLocalDate().getMonth().toString().substring(0, 3);
@@ -67,23 +61,22 @@ public class FoodCalculationService {
         String minute = minuteInt <= 9 ? "0" + minuteInt : String.valueOf(minuteInt);
         return day + " " + month + ", " + hours + ":" + minute;
     }
-
     private void checkForEmptyFoodAmountEntries(Long chatID) {
         var list = findAllEntriesByChatID(chatID);
         list.stream().filter(x -> x.getFoodAmount() == 0).forEach(x -> repository.deleteById(x.getId()));
     }
-
     public void eatTimeCommandReply(Long chatID) {
-        String messageTEXT;
-        var lastEntry = findLastEntryByChatID(chatID);
-        messageTEXT = "Последняя запись: " +
-                parseLocalDateTime(lastEntry.getFeedTime()) + ", " +
-                lastEntry.getNutritionType() + ", " +
-                lastEntry.getFoodAmount() + " мл";
-        telegramBotOriginal.messageExecutor(messageTEXT, chatID);
-        checkForEmptyFoodAmountEntries(chatID);
+        if (isEntityExists(chatID)) {
+            String messageTEXT;
+            var lastEntry = findLastEntryByChatID(chatID);
+            messageTEXT = "Последняя запись: " +
+                    parseLocalDateTime(lastEntry.getFeedTime()) + ", " +
+                    lastEntry.getNutritionType() + ", " +
+                    lastEntry.getFoodAmount() + " мл";
+            telegramBotOriginal.messageExecutor(messageTEXT, chatID);
+            checkForEmptyFoodAmountEntries(chatID);
+        }
     }
-
     public void addNewNutrition(Long chatID) {
         entity = new FoodCalculationEntity();
         entity.setChatID(chatID);
@@ -91,25 +84,23 @@ public class FoodCalculationService {
         entity.setAllowedEntryFoodAmount(false);
         repository.save(entity);
     }
-
     public void setFoodType(String type, Long chatID) {
-        var lastEntry = findLastEntryByChatID(chatID);
-        if (lastEntry != null) {
+        if (isEntityExists(chatID)) {
+            var lastEntry = findLastEntryByChatID(chatID);
             lastEntry.setNutritionType(type);
             lastEntry.setAllowedEntryFoodAmount(true);
             repository.save(lastEntry);
+
         }
     }
-
     public void setFoodAmount(int amount, Long chatID) {
-        var lastEntry = findLastEntryByChatID(chatID);
-        if (lastEntry != null) {
+        if (isEntityExists(chatID)) {
+            var lastEntry = findLastEntryByChatID(chatID);
             lastEntry.setAllowedEntryFoodAmount(false);
             lastEntry.setFoodAmount(amount);
             repository.save(lastEntry);
         }
     }
-
     public void deleteLastEntry(Long chatID) {
         if (isEntityExists(chatID)) {
             telegramBotOriginal.messageExecutor("Я удалил:\n" +
@@ -120,7 +111,6 @@ public class FoodCalculationService {
             telegramBotOriginal.messageExecutor(NOTHING_TO_DELETE_MESSAGE, chatID);
         }
     }
-
     public String showAllEntriesForToday(Long chatID) {
         LocalDateTime startDate = LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT);
         var dates = findAllEntriesByChatID(chatID);
@@ -140,12 +130,10 @@ public class FoodCalculationService {
                                 .append(x.getNutritionType())
                                 .append("\n");
                     });
-            sb.append("В общем за сегодня: ").append(totalAmount.toString()).append(" мл, ").append(totalTimes).append(" раз").append(EmojiParser.parseToUnicode(" :white_check_mark:"));
+            sb.append("В общем за сегодня: ").append(totalAmount).append(" мл, ").append(totalTimes).append(" раз").append(EmojiParser.parseToUnicode(" :white_check_mark:"));
             return sb.toString().strip();
         }
     }
-
-
     public String showAllEntriesForYesterday(Long chatID) {
         LocalDateTime startDate = LocalDateTime.of(LocalDate.now().minusDays(1), LocalTime.MIDNIGHT);
         LocalDateTime finishDate = LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT);
@@ -166,26 +154,23 @@ public class FoodCalculationService {
                                 .append(x.getNutritionType())
                                 .append("\n");
                     });
-            sb.append("В общем за сегодня: ").append(totalAmount.toString()).append(" мл, ").append(totalTimes).append(" раз").append(EmojiParser.parseToUnicode(" :white_check_mark:"));
+            if (totalTimes.get() == 0 || totalAmount.get() == 0) {
+                return "У Вас нет записей за вчера" + EmojiParser.parseToUnicode(":crying_cat_face:");
+            }
+            sb.append("В общем за вчера: ").append(totalAmount).append(" мл, ").append(totalTimes).append(" раз").append(EmojiParser.parseToUnicode(" :white_check_mark:"));
             return sb.toString().strip();
         }
     }
-
     public void eraseAllDataForTheUserByChatID(Long chatID) {
         var getIDsToDelete = findAllEntriesByChatID(chatID);
         for (FoodCalculationEntity entity : getIDsToDelete) {
             repository.deleteById(entity.getId());
         }
     }
-
     public boolean getAllowanceToAddAmount(Long chatID) {
-        var lastEntry = findLastEntryByChatID(chatID);
-        if (lastEntry != null) {
+        if (isEntityExists(chatID)) {
+            var lastEntry = findLastEntryByChatID(chatID);
             return lastEntry.isAllowedEntryFoodAmount();
-        } else {
-            return false;
-        }
+        } else return false;
     }
-
-
 }
