@@ -115,7 +115,7 @@ public class FoodCalculationService {
         LocalDateTime startDate = LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT);
         var dates = findAllEntriesByChatID(chatID);
         if (dates.isEmpty()) {
-            return "У Вас нет записей за сегодня" + EmojiParser.parseToUnicode(":crying_cat_face:");
+            return "У Вас ещё нет записей " + EmojiParser.parseToUnicode(":crying_cat_face:");
         } else {
             StringBuilder sb = new StringBuilder();
             AtomicInteger totalAmount = new AtomicInteger();
@@ -130,6 +130,9 @@ public class FoodCalculationService {
                                 .append(x.getNutritionType())
                                 .append("\n");
                     });
+            if (totalTimes.get() == 0 || totalAmount.get() == 0) {
+                return "У Вас нет записей за сегодня " + EmojiParser.parseToUnicode(":crying_cat_face:");
+            }
             sb.append("В общем за сегодня: ").append(totalAmount).append(" мл, ").append(totalTimes).append(" раз").append(EmojiParser.parseToUnicode(" :white_check_mark:"));
             return sb.toString().strip();
         }
@@ -139,7 +142,7 @@ public class FoodCalculationService {
         LocalDateTime finishDate = LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT);
         var dates = findAllEntriesByChatID(chatID);
         if (dates.isEmpty()) {
-            return "У Вас нет записей за вчера" + EmojiParser.parseToUnicode(":crying_cat_face:");
+            return "У Вас ещё нет записей " + EmojiParser.parseToUnicode(":crying_cat_face:");
         } else {
             StringBuilder sb = new StringBuilder();
             AtomicInteger totalAmount = new AtomicInteger();
@@ -155,7 +158,7 @@ public class FoodCalculationService {
                                 .append("\n");
                     });
             if (totalTimes.get() == 0 || totalAmount.get() == 0) {
-                return "У Вас нет записей за вчера" + EmojiParser.parseToUnicode(":crying_cat_face:");
+                return "У Вас нет записей за вчера " + EmojiParser.parseToUnicode(":crying_cat_face:");
             }
             sb.append("В общем за вчера: ").append(totalAmount).append(" мл, ").append(totalTimes).append(" раз").append(EmojiParser.parseToUnicode(" :white_check_mark:"));
             return sb.toString().strip();
