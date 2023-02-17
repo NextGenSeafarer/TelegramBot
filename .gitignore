@@ -18,3 +18,4 @@
 *.properties
 .idea
 logs
+target
