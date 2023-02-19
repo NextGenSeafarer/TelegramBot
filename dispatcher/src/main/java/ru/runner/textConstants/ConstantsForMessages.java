@@ -38,5 +38,7 @@ public class ConstantsForMessages {
             "Приятного использования!";
     ;
 
+    public static final String YOU_DO_NOT_HAVE_ENTRIES_MESSAGE = "У Вас ещё нет записей " + EmojiParser.parseToUnicode(":crying_cat_face:");
+
 
 }

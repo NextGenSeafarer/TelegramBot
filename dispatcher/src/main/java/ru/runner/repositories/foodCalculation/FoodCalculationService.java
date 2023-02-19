@@ -8,15 +8,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.runner.controller.TelegramBotOriginal;
 
+import java.sql.Date;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import static ru.runner.textConstants.ConstantsForMessages.NOTHING_TO_DELETE_MESSAGE;
+import static ru.runner.textConstants.ConstantsForMessages.YOU_DO_NOT_HAVE_ENTRIES_MESSAGE;
 
 
 @Service
@@ -40,6 +45,7 @@ public class FoodCalculationService {
         }
         return resList;
     }
+
     public FoodCalculationEntity findLastEntryByChatID(Long chatID) {
         LinkedList<FoodCalculationEntity> resList = new LinkedList<>();
         var list = repository.findAll();
@@ -50,21 +56,21 @@ public class FoodCalculationService {
         }
         return resList.getLast();
     }
+
     private boolean isEntityExists(Long chatID) {
         return findAllEntriesByChatID(chatID).size() > 0;
     }
+
     private String parseLocalDateTime(LocalDateTime localDateTime) {
-        int day = localDateTime.toLocalDate().getDayOfMonth();
-        String month = localDateTime.toLocalDate().getMonth().toString().substring(0, 3);
-        int hours = localDateTime.getHour();
-        int minuteInt = localDateTime.getMinute();
-        String minute = minuteInt <= 9 ? "0" + minuteInt : String.valueOf(minuteInt);
-        return day + " " + month + ", " + hours + ":" + minute;
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd MMMM, HH:mm");
+        return localDateTime.format(dtf);
     }
+
     private void checkForEmptyFoodAmountEntries(Long chatID) {
         var list = findAllEntriesByChatID(chatID);
         list.stream().filter(x -> x.getFoodAmount() == 0).forEach(x -> repository.deleteById(x.getId()));
     }
+
     public void eatTimeCommandReply(Long chatID) {
         if (isEntityExists(chatID)) {
             String messageTEXT;
@@ -77,6 +83,7 @@ public class FoodCalculationService {
             checkForEmptyFoodAmountEntries(chatID);
         }
     }
+
     public void addNewNutrition(Long chatID) {
         entity = new FoodCalculationEntity();
         entity.setChatID(chatID);
@@ -84,6 +91,7 @@ public class FoodCalculationService {
         entity.setAllowedEntryFoodAmount(false);
         repository.save(entity);
     }
+
     public void setFoodType(String type, Long chatID) {
         if (isEntityExists(chatID)) {
             var lastEntry = findLastEntryByChatID(chatID);
@@ -93,6 +101,7 @@ public class FoodCalculationService {
 
         }
     }
+
     public void setFoodAmount(int amount, Long chatID) {
         if (isEntityExists(chatID)) {
             var lastEntry = findLastEntryByChatID(chatID);
@@ -101,6 +110,7 @@ public class FoodCalculationService {
             repository.save(lastEntry);
         }
     }
+
     public void deleteLastEntry(Long chatID) {
         if (isEntityExists(chatID)) {
             telegramBotOriginal.messageExecutor("Я удалил:\n" +
@@ -111,11 +121,12 @@ public class FoodCalculationService {
             telegramBotOriginal.messageExecutor(NOTHING_TO_DELETE_MESSAGE, chatID);
         }
     }
+
     public String showAllEntriesForToday(Long chatID) {
         LocalDateTime startDate = LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT);
         var dates = findAllEntriesByChatID(chatID);
         if (dates.isEmpty()) {
-            return "У Вас ещё нет записей " + EmojiParser.parseToUnicode(":crying_cat_face:");
+            return YOU_DO_NOT_HAVE_ENTRIES_MESSAGE;
         } else {
             StringBuilder sb = new StringBuilder();
             AtomicInteger totalAmount = new AtomicInteger();
@@ -130,19 +141,21 @@ public class FoodCalculationService {
                                 .append(x.getNutritionType())
                                 .append("\n");
                     });
+            String times = totalTimes.toString().matches("\\d*[234]") ? "раза" : "раз";
             if (totalTimes.get() == 0 || totalAmount.get() == 0) {
                 return "У Вас нет записей за сегодня " + EmojiParser.parseToUnicode(":crying_cat_face:");
             }
-            sb.append("В общем за сегодня: ").append(totalAmount).append(" мл, ").append(totalTimes).append(" раз").append(EmojiParser.parseToUnicode(" :white_check_mark:"));
+            sb.append("В общем за сегодня: ").append(totalAmount).append(" мл, ").append(totalTimes).append(" ").append(times).append(EmojiParser.parseToUnicode(" :white_check_mark:"));
             return sb.toString().strip();
         }
     }
+
     public String showAllEntriesForYesterday(Long chatID) {
         LocalDateTime startDate = LocalDateTime.of(LocalDate.now().minusDays(1), LocalTime.MIDNIGHT);
         LocalDateTime finishDate = LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT);
         var dates = findAllEntriesByChatID(chatID);
         if (dates.isEmpty()) {
-            return "У Вас ещё нет записей " + EmojiParser.parseToUnicode(":crying_cat_face:");
+            return YOU_DO_NOT_HAVE_ENTRIES_MESSAGE;
         } else {
             StringBuilder sb = new StringBuilder();
             AtomicInteger totalAmount = new AtomicInteger();
@@ -157,19 +170,67 @@ public class FoodCalculationService {
                                 .append(x.getNutritionType())
                                 .append("\n");
                     });
+            String times = totalTimes.toString().matches("\\d*[234]") ? "раза" : "раз";
             if (totalTimes.get() == 0 || totalAmount.get() == 0) {
                 return "У Вас нет записей за вчера " + EmojiParser.parseToUnicode(":crying_cat_face:");
             }
-            sb.append("В общем за вчера: ").append(totalAmount).append(" мл, ").append(totalTimes).append(" раз").append(EmojiParser.parseToUnicode(" :white_check_mark:"));
+            sb.append("В общем за вчера: ").append(totalAmount).append(" мл, ").append(totalTimes).append(" ").append(times).append(EmojiParser.parseToUnicode(" :white_check_mark:"));
             return sb.toString().strip();
         }
     }
+
+    public String showAllEntriesForCertainDays(Long chatID, int daysToShow) {
+
+        LocalDateTime startDate = LocalDateTime.of(LocalDate.now().minusDays(daysToShow), LocalTime.MIDNIGHT);
+        LocalDateTime finishDate = LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT);
+        var dates = findAllEntriesByChatID(chatID);
+        if (dates.isEmpty()) {
+            return YOU_DO_NOT_HAVE_ENTRIES_MESSAGE;
+        } else {
+            StringBuilder sb = new StringBuilder();
+
+            List<FoodCalculationEntity> weekList =
+                    dates.stream()
+                            .filter(x -> x.getFeedTime().isAfter(startDate) && x.getFeedTime().isBefore(finishDate))
+                            .collect(Collectors.toList());
+
+            List<LocalDate> lastWeekDates = weekList.stream().map(x -> x.getFeedTime().toLocalDate()).distinct().collect(Collectors.toList());
+
+            String weekOrMonth = daysToShow == 7 ? "Записи за последнюю неделю:\n" : "Записи за последний месяц:\n";
+            sb.append(weekOrMonth);
+            //TODO: реализовать поиск по введенному количеству дней
+
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd MMMM yyyy");
+
+            for (LocalDate lwd : lastWeekDates) {
+                int amount = 0;
+                int timesInt = 0;
+
+                for (int i = 0; i < weekList.size(); i++) {
+                    if (weekList.get(i).getFeedTime().toLocalDate().equals(lwd)) {
+                        amount += weekList.get(i).getFoodAmount();
+                        timesInt++;
+                    }
+                }
+                String times = String.valueOf(timesInt).matches("\\d*[234]") ? "раза" : "раз";
+
+                sb.append(lwd.format(dtf)).append(" : ").append(amount).append(" мл, ").append(timesInt).append(" ").append(times).append("\n");
+            }
+
+            return sb.toString().strip();
+
+        }
+
+    }
+
+
     public void eraseAllDataForTheUserByChatID(Long chatID) {
         var getIDsToDelete = findAllEntriesByChatID(chatID);
         for (FoodCalculationEntity entity : getIDsToDelete) {
             repository.deleteById(entity.getId());
         }
     }
+
     public boolean getAllowanceToAddAmount(Long chatID) {
         if (isEntityExists(chatID)) {
             var lastEntry = findLastEntryByChatID(chatID);

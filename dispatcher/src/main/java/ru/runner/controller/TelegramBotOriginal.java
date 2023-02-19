@@ -141,6 +141,12 @@ public class TelegramBotOriginal extends TelegramLongPollingBot {
                 case "Записи за вчера":
                     messageExecutor(foodCalculationService.showAllEntriesForYesterday(chatID), chatID);
                     break;
+                case "Записи за последнюю неделю":
+                    messageExecutor(foodCalculationService.showAllEntriesForCertainDays(chatID, 7), chatID);
+                    break;
+                case "Записи за последний месяц":
+                    messageExecutor(foodCalculationService.showAllEntriesForCertainDays(chatID, 30), chatID);
+                    break;
                 case "сброс":
                 case "Сброс":
                 case "СБРОС":
@@ -241,6 +247,7 @@ public class TelegramBotOriginal extends TelegramLongPollingBot {
         if (userService.isUserExists(chatID)) {
             ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
             List<KeyboardRow> keyboardRows = new ArrayList<>();
+
             KeyboardRow row0 = new KeyboardRow();
             row0.add("Удалить последнее кормление");
             row0.add("Добавить кормление");
@@ -250,6 +257,13 @@ public class TelegramBotOriginal extends TelegramLongPollingBot {
             row1.add("Записи за вчера");
             row1.add("Записи за сегодня");
             keyboardRows.add(row1);
+
+            KeyboardRow row2 = new KeyboardRow();
+            row1.add("Записи за последнюю неделю");
+            row1.add("Записи за последний месяц");
+            keyboardRows.add(row2);
+
+
             keyboardMarkup.setKeyboard(keyboardRows);
             message.setReplyMarkup(keyboardMarkup);
         }
@@ -313,7 +327,6 @@ public class TelegramBotOriginal extends TelegramLongPollingBot {
             log.error(e.getMessage());
         }
     }
-    
 
 
 }
