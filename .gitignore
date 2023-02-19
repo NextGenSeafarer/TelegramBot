@@ -14,7 +14,7 @@
 *.zip
 *.tar.gz
 *.rar
-
+*.iml
 *.properties
 .idea
 logs
