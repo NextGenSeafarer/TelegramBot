@@ -16,6 +16,7 @@
 *.rar
 *.iml
 *.properties
+*.iml
 .idea
 logs
 target
