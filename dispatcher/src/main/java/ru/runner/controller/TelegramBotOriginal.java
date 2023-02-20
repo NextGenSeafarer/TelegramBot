@@ -116,8 +116,12 @@ public class TelegramBotOriginal extends TelegramLongPollingBot {
     private void amountEntry(String messageText, Long chatID) {
         if (foodCalculationService.getAllowanceToAddAmount(chatID)) {
             if (messageText.matches("\\d+")) {
-                foodCalculationService.setFoodAmount(Integer.parseInt(messageText), chatID);
-                foodCalculationService.eatTimeCommandReply(chatID);
+                if (Integer.parseInt(messageText) > 10 && Integer.parseInt(messageText) < 400) {
+                    foodCalculationService.setFoodAmount(Integer.parseInt(messageText), chatID);
+                    foodCalculationService.eatTimeCommandReply(chatID);
+                } else {
+                    messageReplyWithoutKeyboard(chatID, "Неверное количество смеси!");
+                }
             }
 
         }
@@ -141,10 +145,10 @@ public class TelegramBotOriginal extends TelegramLongPollingBot {
                 case "Записи за вчера":
                     messageExecutor(foodCalculationService.showAllEntriesForYesterday(chatID), chatID);
                     break;
-                case "Записи за последнюю неделю":
+                case "Записи за неделю":
                     messageExecutor(foodCalculationService.showAllEntriesForCertainDays(chatID, 7), chatID);
                     break;
-                case "Записи за последний месяц":
+                case "Записи за месяц":
                     messageExecutor(foodCalculationService.showAllEntriesForCertainDays(chatID, 30), chatID);
                     break;
                 case "сброс":
@@ -154,19 +158,20 @@ public class TelegramBotOriginal extends TelegramLongPollingBot {
                     break;
                 case "Nan Гипоаллергенный":
                     foodCalculationService.setFoodType("Nan Гипоаллергенный", chatID);
-                    enterAmountTypeKeyboardReply(chatID);
+                    messageReplyWithoutKeyboard(chatID, "Введите количество смеси:");
                     break;
                 case "Nan OptiPro":
                     foodCalculationService.setFoodType("Nan OptiPro", chatID);
-                    enterAmountTypeKeyboardReply(chatID);
+                    messageReplyWithoutKeyboard(chatID, "Введите количество смеси:");
                     break;
                 case "Nan Кисломолочный":
                     foodCalculationService.setFoodType("Nan Кисломолочный", chatID);
-                    enterAmountTypeKeyboardReply(chatID);
+                    messageReplyWithoutKeyboard(chatID, "Введите количество смеси:");
+                    break;
+                case "Неверное количество смеси!":
                     break;
                 default:
                     defaultMessageReplyWithoutKeyboard(chatID, IDK_THE_COMMAND_MESSAGE);
-
             }
         }
 
@@ -254,13 +259,13 @@ public class TelegramBotOriginal extends TelegramLongPollingBot {
             keyboardRows.add(row0);
 
             KeyboardRow row1 = new KeyboardRow();
-            row1.add("Записи за вчера");
+            row1.add("Записи за месяц");
             row1.add("Записи за сегодня");
             keyboardRows.add(row1);
 
             KeyboardRow row2 = new KeyboardRow();
-            row1.add("Записи за последнюю неделю");
-            row1.add("Записи за последний месяц");
+            row2.add("Записи за неделю");
+            row2.add("Записи за вчера");
             keyboardRows.add(row2);
 
 
@@ -269,10 +274,10 @@ public class TelegramBotOriginal extends TelegramLongPollingBot {
         }
     }
 
-    private void enterAmountTypeKeyboardReply(Long chatID) {
+    private void messageReplyWithoutKeyboard(Long chatID, String text) {
         SendMessage message = new SendMessage();
         message.setChatId(chatID);
-        message.setText("Введите количество смеси:");
+        message.setText(text);
         message.setReplyMarkup(deleteKeyBoard());
         try {
             execute(message);
@@ -289,10 +294,15 @@ public class TelegramBotOriginal extends TelegramLongPollingBot {
         ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
         List<KeyboardRow> keyboardRows = new ArrayList<>();
         KeyboardRow row0 = new KeyboardRow();
+        KeyboardRow row1 = new KeyboardRow();
+        KeyboardRow row2 = new KeyboardRow();
         row0.add("Nan Гипоаллергенный");
-        row0.add("Nan OptiPro");
-        row0.add("Nan Кисломолочный");
+        row1.add("Nan OptiPro");
+        row2.add("Nan Кисломолочный");
+
         keyboardRows.add(row0);
+        keyboardRows.add(row1);
+        keyboardRows.add(row2);
         keyboardMarkup.setKeyboard(keyboardRows);
         message.setReplyMarkup(keyboardMarkup);
         try {
