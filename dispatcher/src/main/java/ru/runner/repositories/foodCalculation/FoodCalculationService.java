@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.runner.controller.TelegramBotOriginal;
 
-import java.sql.Date;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -16,7 +15,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -197,7 +195,6 @@ public class FoodCalculationService {
                 return YOU_DO_NOT_HAVE_ENTRIES_MESSAGE;
             }
 
-
             List<LocalDate> lastWeekDates = weekList.stream().map(x -> x.getFeedTime().toLocalDate()).distinct().collect(Collectors.toList());
 
             String weekOrMonth = daysToShow == 7 ? "Записи за последнюю неделю:\n" : "Записи за последний месяц:\n";
@@ -218,6 +215,8 @@ public class FoodCalculationService {
                     }
                 }
                 String times = String.valueOf(timesInt).matches("\\d*[234]") ? "раза" : "раз";
+
+
 
                 sb.append(lwd.format(dtf)).append(" : ").append(amount).append(" мл, ").append(timesInt).append(" ").append(times).append("\n");
             }

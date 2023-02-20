@@ -264,10 +264,8 @@ public class TelegramBotOriginal extends TelegramLongPollingBot {
             keyboardRows.add(row1);
 
             KeyboardRow row2 = new KeyboardRow();
-
             row2.add("Записи за неделю");
             row2.add("Записи за вчера");
-
             keyboardRows.add(row2);
 
 
