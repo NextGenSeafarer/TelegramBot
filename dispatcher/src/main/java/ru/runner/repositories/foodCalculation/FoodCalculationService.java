@@ -208,16 +208,13 @@ public class FoodCalculationService {
                 int amount = 0;
                 int timesInt = 0;
 
-                for (int i = 0; i < weekList.size(); i++) {
-                    if (weekList.get(i).getFeedTime().toLocalDate().equals(lwd)) {
-                        amount += weekList.get(i).getFoodAmount();
+                for (FoodCalculationEntity foodCalculationEntity : weekList) {
+                    if (foodCalculationEntity.getFeedTime().toLocalDate().equals(lwd)) {
+                        amount += foodCalculationEntity.getFoodAmount();
                         timesInt++;
                     }
                 }
                 String times = String.valueOf(timesInt).matches("\\d*[234]") ? "раза" : "раз";
-
-
-
                 sb.append(lwd.format(dtf)).append(" : ").append(amount).append(" мл, ").append(timesInt).append(" ").append(times).append("\n");
             }
 
