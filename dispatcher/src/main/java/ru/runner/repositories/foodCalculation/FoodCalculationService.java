@@ -193,21 +193,16 @@ public class FoodCalculationService {
                     dates.stream()
                             .filter(x -> x.getFeedTime().isAfter(startDate) && x.getFeedTime().isBefore(finishDate))
                             .collect(Collectors.toList());
-<<<<<<< HEAD
-=======
             if(weekList.isEmpty()){
                 return YOU_DO_NOT_HAVE_ENTRIES_MESSAGE;
             }
->>>>>>> newF
+
 
             List<LocalDate> lastWeekDates = weekList.stream().map(x -> x.getFeedTime().toLocalDate()).distinct().collect(Collectors.toList());
 
             String weekOrMonth = daysToShow == 7 ? "Записи за последнюю неделю:\n" : "Записи за последний месяц:\n";
             sb.append(weekOrMonth);
-<<<<<<< HEAD
-=======
 
->>>>>>> newF
             //TODO: реализовать поиск по введенному количеству дней
 
             DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd MMMM yyyy");
@@ -224,11 +219,6 @@ public class FoodCalculationService {
                 }
                 String times = String.valueOf(timesInt).matches("\\d*[234]") ? "раза" : "раз";
 
-<<<<<<< HEAD
-=======
-
-
->>>>>>> newF
                 sb.append(lwd.format(dtf)).append(" : ").append(amount).append(" мл, ").append(timesInt).append(" ").append(times).append("\n");
             }
 

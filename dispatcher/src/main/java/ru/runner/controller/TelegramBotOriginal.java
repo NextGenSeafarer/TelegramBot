@@ -145,17 +145,10 @@ public class TelegramBotOriginal extends TelegramLongPollingBot {
                 case "Записи за вчера":
                     messageExecutor(foodCalculationService.showAllEntriesForYesterday(chatID), chatID);
                     break;
-<<<<<<< HEAD
-                case "Записи за последнюю неделю":
-                    messageExecutor(foodCalculationService.showAllEntriesForCertainDays(chatID, 7), chatID);
-                    break;
-                case "Записи за последний месяц":
-=======
                 case "Записи за неделю":
                     messageExecutor(foodCalculationService.showAllEntriesForCertainDays(chatID, 7), chatID);
                     break;
                 case "Записи за месяц":
->>>>>>> newF
                     messageExecutor(foodCalculationService.showAllEntriesForCertainDays(chatID, 30), chatID);
                     break;
                 case "сброс":
@@ -271,13 +264,10 @@ public class TelegramBotOriginal extends TelegramLongPollingBot {
             keyboardRows.add(row1);
 
             KeyboardRow row2 = new KeyboardRow();
-<<<<<<< HEAD
-            row1.add("Записи за последнюю неделю");
-            row1.add("Записи за последний месяц");
-=======
+
             row2.add("Записи за неделю");
             row2.add("Записи за вчера");
->>>>>>> newF
+
             keyboardRows.add(row2);
 
 
