@@ -2,10 +2,8 @@ package ru.runner.controller;
 
 import com.vdurmont.emoji.EmojiParser;
 import lombok.extern.log4j.Log4j;
-import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -19,7 +17,6 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardRem
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
-import ru.runner.repositories.UserData.UserRepository;
 import ru.runner.repositories.UserData.UserService;
 import ru.runner.repositories.UserData.keychain.UserKeyChainGeneration;
 import ru.runner.repositories.foodCalculation.FoodCalculationService;
@@ -27,7 +24,8 @@ import ru.runner.repositories.foodCalculation.FoodCalculationService;
 import java.util.ArrayList;
 import java.util.List;
 
-import static ru.runner.textConstants.ConstantsForMessages.*;
+import static ru.runner.textConstants.ConstantsForMessages.GENERAL_INFO_ABOUT_BOT_MESSAGE;
+import static ru.runner.textConstants.ConstantsForMessages.IDK_THE_COMMAND_MESSAGE;
 import static ru.runner.textConstants.Stickers.ConstantsForStickers.WELCOME_CAT_STICKER;
 
 @Component("telegramBotOriginal")
@@ -252,11 +250,16 @@ public class TelegramBotOriginal extends TelegramLongPollingBot {
 
         SendMessage message = new SendMessage();
         String whoseAccount;
-        if (userService.isAnotherUserNeedToBeUsed(chatID)) {
-            var anotherUser = userService.showUser(chatID).getAnotherUserID();
-            whoseAccount = userService.showUser(anotherUser).getFirstName();
+        if (userService.isUserExists(chatID)) {
+
+            if (userService.isAnotherUserNeedToBeUsed(chatID)) {
+                var anotherUser = userService.showUser(chatID).getAnotherUserID();
+                whoseAccount = userService.showUser(anotherUser).getFirstName();
+            } else {
+                whoseAccount = userService.showUser(chatID).getFirstName();
+            }
         } else {
-            whoseAccount = userService.showUser(chatID).getFirstName();
+            whoseAccount = command.getChat().getFirstName();
         }
         var messageTEXT = "Привет,\n" +
                 "Вы используете аккаунт: " + whoseAccount + " " + EmojiParser.parseToUnicode(":arrow_left:");

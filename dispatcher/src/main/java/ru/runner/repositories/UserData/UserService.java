@@ -82,7 +82,7 @@ public class UserService {
     }
 
     private void regCommandReplyAlreadyExists(Message command) {
-        telegramBotOriginal.defaultMessageReplyWithoutKeyboard(command.getChatId(),command.getChat().getFirstName() + YOU_ARE_REGISTERED_ALREADY_MESSAGE);
+        telegramBotOriginal.defaultMessageReplyWithoutKeyboard(command.getChatId(), command.getChat().getFirstName() + YOU_ARE_REGISTERED_ALREADY_MESSAGE);
     }
 
     public void deleteAllData(Long chatID) {
@@ -101,7 +101,10 @@ public class UserService {
     }
 
     public boolean isAnotherUserNeedToBeUsed(Long chatID) {
-        return userRepository.findById(chatID).get().isAnotherUserNeedToBeUsed();
+        if (isUserExists(chatID)) {
+           return userRepository.findById(chatID).get().isAnotherUserNeedToBeUsed();
+        }
+        return false;
     }
 
     public Long getAnotherID(Long chatID) {
