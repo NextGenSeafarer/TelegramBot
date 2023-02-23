@@ -1,5 +1,7 @@
 package ru.runner.repositories.UserData;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.objects.Message;
@@ -13,18 +15,24 @@ import static ru.runner.textConstants.ConstantsForMessages.*;
 import static ru.runner.textConstants.Stickers.ConstantsForStickers.SAD_CAT_STICKER;
 
 @Service
+@Getter
+@Setter
 public class UserService {
     @Autowired
     private UserRepository userRepository;
     @Autowired
     private TelegramBotOriginal telegramBotOriginal;
-
     @Autowired
     private FoodCalculationService foodService;
 
 
     public void saveUser(UserReg user) {
         userRepository.save(user);
+    }
+
+    public boolean isUserHaveKeyChain(Long chatID) {
+        return userRepository.findById(chatID).get().getKeychain() != null;
+
     }
 
     public UserReg showUser(Long chatID) {
@@ -74,7 +82,7 @@ public class UserService {
     }
 
     private void regCommandReplyAlreadyExists(Message command) {
-        telegramBotOriginal.messageExecutor(command.getChat().getFirstName() + YOU_ARE_REGISTERED_ALREADY_MESSAGE, command.getChatId());
+        telegramBotOriginal.defaultMessageReplyWithoutKeyboard(command.getChatId(),command.getChat().getFirstName() + YOU_ARE_REGISTERED_ALREADY_MESSAGE);
     }
 
     public void deleteAllData(Long chatID) {
@@ -86,13 +94,25 @@ public class UserService {
     public void askUserOneMoreTomeAboutDelete(Long chatID) {
 
         if (isUserExists(chatID)) {
-            telegramBotOriginal.messageExecutor(ASK_DELETE_MESSAGE, chatID);
-
+            telegramBotOriginal.defaultMessageReplyWithoutKeyboard(chatID, ASK_DELETE_MESSAGE);
         } else {
             userIsNotExistedPleaseRegister(chatID);
         }
+    }
 
+    public boolean isAnotherUserNeedToBeUsed(Long chatID) {
+        return userRepository.findById(chatID).get().isAnotherUserNeedToBeUsed();
+    }
 
+    public Long getAnotherID(Long chatID) {
+        return userRepository.findById(chatID).get().getAnotherUserID();
+    }
+
+    public void returnBackOriginalAccount(Long chatID) {
+        var user = userRepository.findById(chatID).get();
+        user.setAnotherUserNeedToBeUsed(false);
+        user.setAnotherUserID(null);
+        userRepository.save(user);
     }
 
 
