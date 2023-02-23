@@ -8,7 +8,6 @@ import ru.runner.controller.TelegramBotOriginal;
 import ru.runner.repositories.UserData.UserReg;
 import ru.runner.repositories.UserData.UserRepository;
 import ru.runner.repositories.UserData.UserService;
-import ru.runner.repositories.foodCalculation.FoodCalculationEntity;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -57,7 +56,6 @@ public class UserKeyChainGeneration {
         list.add(list.size(), "KEY");
         StringBuilder sb = new StringBuilder();
         list.forEach(sb::append);
-        System.out.println(sb);
         return sb.toString();
 
     }
@@ -76,8 +74,10 @@ public class UserKeyChainGeneration {
     private Long findUserByKeychainAndReturnChatID(String keychain) {
         var list = userRepository.findAll();
         for (UserReg entity : list) {
-            if (entity.getKeychain().equals(keychain)) {
-                return entity.getChatId();
+            if (entity.getKeychain() != null) {
+                if (entity.getKeychain().equals(keychain)) {
+                    return entity.getChatId();
+                }
             }
         }
         return null;
