@@ -2,6 +2,7 @@ package ru.runner.controller;
 
 import com.vdurmont.emoji.EmojiParser;
 import lombok.extern.log4j.Log4j;
+import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -20,6 +21,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.runner.repositories.UserData.UserRepository;
 import ru.runner.repositories.UserData.UserService;
+import ru.runner.repositories.UserData.keychain.UserKeyChainGeneration;
 import ru.runner.repositories.foodCalculation.FoodCalculationService;
 
 import java.util.ArrayList;
@@ -29,15 +31,14 @@ import static ru.runner.textConstants.ConstantsForMessages.*;
 import static ru.runner.textConstants.Stickers.ConstantsForStickers.WELCOME_CAT_STICKER;
 
 @Component("telegramBotOriginal")
-@EnableScheduling
 @Log4j
 public class TelegramBotOriginal extends TelegramLongPollingBot {
-    @Autowired
-    private UserRepository userRepository;
     @Autowired
     private UserService userService;
     @Autowired
     private FoodCalculationService foodCalculationService;
+    @Autowired
+    private UserKeyChainGeneration userKeyChain;
 
 
     @Value("${bot.name}")
@@ -63,14 +64,22 @@ public class TelegramBotOriginal extends TelegramLongPollingBot {
 
             String messageText = update.getMessage().getText();
             command = update.getMessage();
+
+
             long chatID = update.getMessage().getChatId();
+
 
             log.debug(messageText); // <-logging the messages
 
-            if (messageText.equals("/start")) {
-                welcomeMessageReply(command);
-                return;
+            switch (messageText) {
+                case "/start":
+                    welcomeMessageReply(command);
+                    return;
+                case "/help":
+                    messageExecutor(GENERAL_INFO_ABOUT_BOT_MESSAGE, chatID);
+                    break;
             }
+
             if (userService.isUserExists(chatID)) {
 
                 firstLevelMenuCommands(messageText, chatID);
@@ -88,10 +97,13 @@ public class TelegramBotOriginal extends TelegramLongPollingBot {
             switch (callBackData) {
                 case "REGISTRATION":
                     userService.registryUser(command);
+                    if (!userService.isUserHaveKeyChain(chatID)) {
+                        userKeyChain.generateKeyChain(chatID);
+                    }
                     log.info("user with chatID :" + chatID + " saved");
                     break;
                 case "BOTINFO":
-                    messageExecutor(GENERAL_INFO_ABOUT_BOT_MESSAGE, chatID);
+                    messageReplyWithoutKeyboard(chatID, GENERAL_INFO_ABOUT_BOT_MESSAGE);
                     break;
                 case "DELETEALLDATA":
                     if (userService.isUserExists(chatID)) {
@@ -103,8 +115,28 @@ public class TelegramBotOriginal extends TelegramLongPollingBot {
                 case "FUNCTIONS":
                     if (userService.isUserExists(chatID)) {
                         messageExecutor(EmojiParser.parseToUnicode(":mouse2:"), chatID);
-                        break;
+                    } else {
+                        userService.userIsNotExistedPleaseRegister(chatID);
                     }
+                    break;
+                case "GETKEY":
+                    if (userService.isUserExists(chatID)) {
+                        userKeyChain.generateKeyChain(chatID);
+                    } else {
+                        userService.userIsNotExistedPleaseRegister(chatID);
+                    }
+                    break;
+                case "RETURNBACK":
+                    if (userService.isUserExists(chatID)) {
+                        userService.returnBackOriginalAccount(chatID);
+                        if (!userService.isAnotherUserNeedToBeUsed(chatID)) {
+                            messageReplyWithoutKeyboard(chatID, userService.showUser(chatID).getFirstName() + ", Вы на своём аккаунте");
+                        }
+                    } else {
+                        userService.userIsNotExistedPleaseRegister(chatID);
+                    }
+
+                    break;
                 default:
                     userService.userIsNotExistedPleaseRegister(chatID);
                     break;
@@ -114,11 +146,18 @@ public class TelegramBotOriginal extends TelegramLongPollingBot {
 
 
     private void amountEntry(String messageText, Long chatID) {
-        if (foodCalculationService.getAllowanceToAddAmount(chatID)) {
+        long otherChatID;
+        if (userService.isAnotherUserNeedToBeUsed(chatID)) {
+            otherChatID = userService.getAnotherID(chatID);
+        } else {
+            otherChatID = chatID;
+        }
+
+        if (foodCalculationService.getAllowanceToAddAmount(otherChatID)) {
             if (messageText.matches("\\d+")) {
                 if (Integer.parseInt(messageText) > 10 && Integer.parseInt(messageText) < 400) {
-                    foodCalculationService.setFoodAmount(Integer.parseInt(messageText), chatID);
-                    foodCalculationService.eatTimeCommandReply(chatID);
+                    foodCalculationService.setFoodAmount(Integer.parseInt(messageText), otherChatID);
+                    messageExecutor(foodCalculationService.eatTimeCommandReply(otherChatID), chatID);
                 } else {
                     messageReplyWithoutKeyboard(chatID, "Неверное количество смеси!");
                 }
@@ -128,28 +167,55 @@ public class TelegramBotOriginal extends TelegramLongPollingBot {
 
     }
 
-
     private void firstLevelMenuCommands(String messageText, Long chatID) {
+        if (messageText.startsWith("!-") && messageText.endsWith("KEY")) {
+            if (userKeyChain.isKeyChainExists(messageText)) {
+                if (messageText.equals(userService.showUser(chatID).getKeychain())) {
+                    if (userService.isAnotherUserNeedToBeUsed(chatID)) {
+                        messageExecutor("Это Ваш ключ", chatID);
+                        userService.returnBackOriginalAccount(chatID);
+                    } else {
+                        messageExecutor("Вы все ещё на своём аккаунте", chatID);
+                    }
+                } else {
+                    userKeyChain.changeUser(chatID, messageText);
+                    messageExecutor("Вы зашли в аккаунт " + userService.showUser(userService.getAnotherID(chatID)).getFirstName(), chatID);
+                }
+            } else {
+                messageExecutor("Неверный ключ", chatID);
+            }
+
+
+        }
+
         if (!messageText.matches("\\d+")) {
+            long otherChatID;
+            if (userService.isAnotherUserNeedToBeUsed(chatID)) {
+                otherChatID = userService.getAnotherID(chatID);
+            } else {
+                otherChatID = chatID;
+            }
+
             switch (messageText) {
                 case "Удалить последнее кормление":
                     foodCalculationService.deleteLastEntry(chatID);
+                    messageExecutor(foodCalculationService.deleteLastEntry(otherChatID), chatID);
                     break;
                 case "Добавить кормление":
                     nutritionTypeKeyboardReply(chatID);
-                    foodCalculationService.addNewNutrition(chatID);
+                    foodCalculationService.addNewNutrition(otherChatID);
                     break;
                 case "Записи за сегодня":
-                    messageExecutor(foodCalculationService.showAllEntriesForToday(chatID), chatID);
+                    messageExecutor(foodCalculationService.showAllEntriesForToday(otherChatID), chatID);
                     break;
                 case "Записи за вчера":
-                    messageExecutor(foodCalculationService.showAllEntriesForYesterday(chatID), chatID);
+                    messageExecutor(foodCalculationService.showAllEntriesForYesterday(otherChatID), chatID);
                     break;
                 case "Записи за неделю":
-                    messageExecutor(foodCalculationService.showAllEntriesForCertainDays(chatID, 7), chatID);
+                    messageExecutor(foodCalculationService.showAllEntriesForCertainDays(otherChatID, 7), chatID);
                     break;
                 case "Записи за месяц":
-                    messageExecutor(foodCalculationService.showAllEntriesForCertainDays(chatID, 30), chatID);
+                    messageExecutor(foodCalculationService.showAllEntriesForCertainDays(otherChatID, 30), chatID);
                     break;
                 case "сброс":
                 case "Сброс":
@@ -157,18 +223,16 @@ public class TelegramBotOriginal extends TelegramLongPollingBot {
                     userService.deleteAllData(chatID);
                     break;
                 case "Nan Гипоаллергенный":
-                    foodCalculationService.setFoodType("Nan Гипоаллергенный", chatID);
+                    foodCalculationService.setFoodType("Nan Гипоаллергенный", otherChatID);
                     messageReplyWithoutKeyboard(chatID, "Введите количество смеси:");
                     break;
                 case "Nan OptiPro":
-                    foodCalculationService.setFoodType("Nan OptiPro", chatID);
+                    foodCalculationService.setFoodType("Nan OptiPro", otherChatID);
                     messageReplyWithoutKeyboard(chatID, "Введите количество смеси:");
                     break;
                 case "Nan Кисломолочный":
-                    foodCalculationService.setFoodType("Nan Кисломолочный", chatID);
+                    foodCalculationService.setFoodType("Nan Кисломолочный", otherChatID);
                     messageReplyWithoutKeyboard(chatID, "Введите количество смеси:");
-                    break;
-                case "Неверное количество смеси!":
                     break;
                 default:
                     defaultMessageReplyWithoutKeyboard(chatID, IDK_THE_COMMAND_MESSAGE);
@@ -187,7 +251,15 @@ public class TelegramBotOriginal extends TelegramLongPollingBot {
         var chatID = command.getChatId();
 
         SendMessage message = new SendMessage();
-        var messageTEXT = "Привет, " + command.getChat().getFirstName() + WELCOME_MESSAGE;
+        String whoseAccount;
+        if (userService.isAnotherUserNeedToBeUsed(chatID)) {
+            var anotherUser = userService.showUser(chatID).getAnotherUserID();
+            whoseAccount = userService.showUser(anotherUser).getFirstName();
+        } else {
+            whoseAccount = userService.showUser(chatID).getFirstName();
+        }
+        var messageTEXT = "Привет,\n" +
+                "Вы используете аккаунт: " + whoseAccount + " " + EmojiParser.parseToUnicode(":arrow_left:");
         message.setChatId(String.valueOf(chatID));
         message.setText(messageTEXT);
 
@@ -197,36 +269,49 @@ public class TelegramBotOriginal extends TelegramLongPollingBot {
         List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
         List<InlineKeyboardButton> rowInLine0 = new ArrayList<>();
         List<InlineKeyboardButton> rowInLine1 = new ArrayList<>();
+        List<InlineKeyboardButton> rowInLine2 = new ArrayList<>();
+        List<InlineKeyboardButton> rowInLine3 = new ArrayList<>();
 
         var register = new InlineKeyboardButton();
         var deleteAllData = new InlineKeyboardButton();
         var botInfo = new InlineKeyboardButton();
         var functions = new InlineKeyboardButton();
+        var getKey = new InlineKeyboardButton();
+        var returnBack = new InlineKeyboardButton();
 
 
         register.setText("Регистрация");
         deleteAllData.setText("Сброс");
         botInfo.setText("Информация");
         functions.setText("Функции");
+        getKey.setText("Получить ключ");
+        returnBack.setText("Вернуться на свой аккаунт");
 
 
         register.setCallbackData("REGISTRATION");
         deleteAllData.setCallbackData("DELETEALLDATA");
         botInfo.setCallbackData("BOTINFO");
         functions.setCallbackData("FUNCTIONS");
+        getKey.setCallbackData("GETKEY");
+        returnBack.setCallbackData("RETURNBACK");
 
 
         rowInLine0.add(botInfo);
         rowInLine0.add(register);
         rowInLine0.add(deleteAllData);
         rowInLine1.add(functions);
+        rowInLine2.add(getKey);
+        rowInLine3.add(returnBack);
 
         rowsInLine.add(rowInLine0);
         rowsInLine.add(rowInLine1);
+        rowsInLine.add(rowInLine2);
+        rowsInLine.add(rowInLine3);
 
 
         markupInLine.setKeyboard(rowsInLine);
         message.setReplyMarkup(markupInLine);
+
         try {
             execute(message);
         } catch (TelegramApiException e) {

@@ -12,7 +12,7 @@ import javax.persistence.Table;
 import java.sql.Timestamp;
 
 @Entity
-@Table(name = "userReg")
+@Table
 @Getter
 @Setter
 @ToString
@@ -30,6 +30,11 @@ public class UserReg {
 
     private Timestamp registeredAt;
 
+    private String keychain;
+
+    private Long anotherUserID;
+
+    private boolean isAnotherUserNeedToBeUsed;
 
 
 }

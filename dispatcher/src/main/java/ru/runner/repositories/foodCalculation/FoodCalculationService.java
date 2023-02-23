@@ -69,17 +69,17 @@ public class FoodCalculationService {
         list.stream().filter(x -> x.getFoodAmount() == 0).forEach(x -> repository.deleteById(x.getId()));
     }
 
-    public void eatTimeCommandReply(Long chatID) {
-        if (isEntityExists(chatID)) {
-            String messageTEXT;
-            var lastEntry = findLastEntryByChatID(chatID);
-            messageTEXT = "Последняя запись: " +
-                    parseLocalDateTime(lastEntry.getFeedTime()) + ", " +
-                    lastEntry.getNutritionType() + ", " +
-                    lastEntry.getFoodAmount() + " мл";
-            telegramBotOriginal.messageExecutor(messageTEXT, chatID);
-            checkForEmptyFoodAmountEntries(chatID);
-        }
+    public String eatTimeCommandReply(Long chatID) {
+
+        String messageTEXT;
+        var lastEntry = findLastEntryByChatID(chatID);
+        messageTEXT = "Последняя запись: " +
+                parseLocalDateTime(lastEntry.getFeedTime()) + ", " +
+                lastEntry.getNutritionType() + ", " +
+                lastEntry.getFoodAmount() + " мл";
+        checkForEmptyFoodAmountEntries(chatID);
+        return messageTEXT;
+
     }
 
     public void addNewNutrition(Long chatID) {
@@ -109,14 +109,13 @@ public class FoodCalculationService {
         }
     }
 
-    public void deleteLastEntry(Long chatID) {
+    public String deleteLastEntry(Long chatID) {
         if (isEntityExists(chatID)) {
-            telegramBotOriginal.messageExecutor("Я удалил:\n" +
-                    parseLocalDateTime(findLastEntryByChatID(chatID).getFeedTime()) +
-                    EmojiParser.parseToUnicode(" :o:"), chatID);
+            String res = "Я удалил:\n" + parseLocalDateTime(findLastEntryByChatID(chatID).getFeedTime()) + EmojiParser.parseToUnicode(" :o:");
             repository.deleteById(findLastEntryByChatID(chatID).getId());
+            return res;
         } else {
-            telegramBotOriginal.messageExecutor(NOTHING_TO_DELETE_MESSAGE, chatID);
+            return NOTHING_TO_DELETE_MESSAGE;
         }
     }
 
@@ -191,7 +190,7 @@ public class FoodCalculationService {
                     dates.stream()
                             .filter(x -> x.getFeedTime().isAfter(startDate) && x.getFeedTime().isBefore(finishDate))
                             .collect(Collectors.toList());
-            if(weekList.isEmpty()){
+            if (weekList.isEmpty()) {
                 return YOU_DO_NOT_HAVE_ENTRIES_MESSAGE;
             }
 
@@ -215,7 +214,6 @@ public class FoodCalculationService {
                     }
                 }
                 String times = String.valueOf(timesInt).matches("\\d*[234]") ? "раза" : "раз";
-
 
 
                 sb.append(lwd.format(dtf)).append(" : ").append(amount).append(" мл, ").append(timesInt).append(" ").append(times).append("\n");
