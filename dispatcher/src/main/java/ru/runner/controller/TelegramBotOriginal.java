@@ -182,8 +182,6 @@ public class TelegramBotOriginal extends TelegramLongPollingBot {
             } else {
                 messageExecutor("Неверный ключ", chatID);
             }
-
-
         }
 
         if (!messageText.matches("\\d+")) {
@@ -204,10 +202,13 @@ public class TelegramBotOriginal extends TelegramLongPollingBot {
                     foodCalculationService.addNewNutrition(otherChatID);
                     break;
                 case "Записи за сегодня":
-                    messageExecutor(foodCalculationService.showAllEntriesForToday(otherChatID), chatID);
+                    messageExecutor(foodCalculationService.showAllEntriesForSomeDay(otherChatID, "today"), chatID);
+                   // messageExecutor(foodCalculationService.showAllEntriesForToday(otherChatID), chatID);
                     break;
                 case "Записи за вчера":
-                    messageExecutor(foodCalculationService.showAllEntriesForYesterday(otherChatID), chatID);
+                    messageExecutor(foodCalculationService.showAllEntriesForSomeDay(otherChatID, "yesterday"), chatID);
+
+                    //messageExecutor(foodCalculationService.showAllEntriesForYesterday(otherChatID), chatID);
                     break;
                 case "Записи за неделю":
                     messageExecutor(foodCalculationService.showAllEntriesForCertainDays(otherChatID, 7), chatID);
@@ -232,6 +233,11 @@ public class TelegramBotOriginal extends TelegramLongPollingBot {
                     foodCalculationService.setFoodType("Nan Кисломолочный", otherChatID);
                     messageReplyWithoutKeyboard(chatID, "Введите количество смеси:");
                     break;
+                case "Вода":
+                    foodCalculationService.setFoodType("Вода", otherChatID);
+                    messageReplyWithoutKeyboard(chatID, "Введите количество");
+                    break;
+
                 default:
                     defaultMessageReplyWithoutKeyboard(chatID, IDK_THE_COMMAND_MESSAGE);
             }
@@ -273,14 +279,16 @@ public class TelegramBotOriginal extends TelegramLongPollingBot {
         List<InlineKeyboardButton> rowInLine0 = new ArrayList<>();
         List<InlineKeyboardButton> rowInLine1 = new ArrayList<>();
         List<InlineKeyboardButton> rowInLine2 = new ArrayList<>();
-        List<InlineKeyboardButton> rowInLine3 = new ArrayList<>();
+
 
         var register = new InlineKeyboardButton();
         var deleteAllData = new InlineKeyboardButton();
         var botInfo = new InlineKeyboardButton();
         var functions = new InlineKeyboardButton();
         var getKey = new InlineKeyboardButton();
-        var returnBack = new InlineKeyboardButton();
+
+
+
 
 
         register.setText("Регистрация");
@@ -288,7 +296,7 @@ public class TelegramBotOriginal extends TelegramLongPollingBot {
         botInfo.setText("Информация");
         functions.setText("Функции");
         getKey.setText("Получить ключ");
-        returnBack.setText("Вернуться на свой аккаунт");
+
 
 
         register.setCallbackData("REGISTRATION");
@@ -296,7 +304,7 @@ public class TelegramBotOriginal extends TelegramLongPollingBot {
         botInfo.setCallbackData("BOTINFO");
         functions.setCallbackData("FUNCTIONS");
         getKey.setCallbackData("GETKEY");
-        returnBack.setCallbackData("RETURNBACK");
+
 
 
         rowInLine0.add(botInfo);
@@ -304,17 +312,22 @@ public class TelegramBotOriginal extends TelegramLongPollingBot {
         rowInLine0.add(deleteAllData);
         rowInLine1.add(functions);
         rowInLine2.add(getKey);
-        rowInLine3.add(returnBack);
+
 
         rowsInLine.add(rowInLine0);
         rowsInLine.add(rowInLine1);
         rowsInLine.add(rowInLine2);
-        rowsInLine.add(rowInLine3);
 
-
+        if(userService.isAnotherUserNeedToBeUsed(chatID)){
+            var returnBack = new InlineKeyboardButton();
+            returnBack.setText("Вернуться на свой аккаунт");
+            returnBack.setCallbackData("RETURNBACK");
+            List<InlineKeyboardButton> rowInLine3 = new ArrayList<>();
+            rowInLine3.add(returnBack);
+            rowsInLine.add(rowInLine3);
+        }
         markupInLine.setKeyboard(rowsInLine);
         message.setReplyMarkup(markupInLine);
-
         try {
             execute(message);
         } catch (TelegramApiException e) {
@@ -384,13 +397,16 @@ public class TelegramBotOriginal extends TelegramLongPollingBot {
         KeyboardRow row0 = new KeyboardRow();
         KeyboardRow row1 = new KeyboardRow();
         KeyboardRow row2 = new KeyboardRow();
+        KeyboardRow row3 = new KeyboardRow();
         row0.add("Nan Гипоаллергенный");
         row1.add("Nan OptiPro");
         row2.add("Nan Кисломолочный");
+        row3.add("Вода");
 
         keyboardRows.add(row0);
         keyboardRows.add(row1);
         keyboardRows.add(row2);
+        keyboardRows.add(row3);
         keyboardMarkup.setKeyboard(keyboardRows);
         message.setReplyMarkup(keyboardMarkup);
         try {
