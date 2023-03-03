@@ -62,12 +62,8 @@ public class TelegramBotOriginal extends TelegramLongPollingBot {
 
             String messageText = update.getMessage().getText();
             command = update.getMessage();
-
-
             long chatID = update.getMessage().getChatId();
-
-
-            log.debug(messageText); // <-logging the messages
+            log.debug(messageText);
 
             switch (messageText) {
                 case "/start":
@@ -194,7 +190,6 @@ public class TelegramBotOriginal extends TelegramLongPollingBot {
 
             switch (messageText) {
                 case "Удалить последнее кормление":
-                    foodCalculationService.deleteLastEntry(chatID);
                     messageExecutor(foodCalculationService.deleteLastEntry(otherChatID), chatID);
                     break;
                 case "Добавить кормление":
@@ -203,12 +198,9 @@ public class TelegramBotOriginal extends TelegramLongPollingBot {
                     break;
                 case "Записи за сегодня":
                     messageExecutor(foodCalculationService.showAllEntriesForSomeDay(otherChatID, "today"), chatID);
-                   // messageExecutor(foodCalculationService.showAllEntriesForToday(otherChatID), chatID);
                     break;
                 case "Записи за вчера":
                     messageExecutor(foodCalculationService.showAllEntriesForSomeDay(otherChatID, "yesterday"), chatID);
-
-                    //messageExecutor(foodCalculationService.showAllEntriesForYesterday(otherChatID), chatID);
                     break;
                 case "Записи за неделю":
                     messageExecutor(foodCalculationService.showAllEntriesForCertainDays(otherChatID, 7), chatID);

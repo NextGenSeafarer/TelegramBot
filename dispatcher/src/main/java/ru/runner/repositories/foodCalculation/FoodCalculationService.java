@@ -43,6 +43,7 @@ public class FoodCalculationService {
         }
         return resList;
     }
+
     public FoodCalculationEntity findLastEntryByChatID(Long chatID) {
         LinkedList<FoodCalculationEntity> resList = new LinkedList<>();
         var list = repository.findAll();
@@ -53,17 +54,21 @@ public class FoodCalculationService {
         }
         return resList.getLast();
     }
+
     private boolean isEntityExists(Long chatID) {
         return findAllEntriesByChatID(chatID).size() > 0;
     }
+
     private String parseLocalDateTime(LocalDateTime localDateTime) {
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd MMMM, HH:mm");
         return localDateTime.format(dtf);
     }
+
     private void checkForEmptyFoodAmountEntries(Long chatID) {
         var list = findAllEntriesByChatID(chatID);
         list.stream().filter(x -> x.getFoodAmount() == 0).forEach(x -> repository.deleteById(x.getId()));
     }
+
     public String eatTimeCommandReply(Long chatID) {
 
         String messageTEXT;
@@ -76,6 +81,7 @@ public class FoodCalculationService {
         return messageTEXT;
 
     }
+
     public void addNewNutrition(Long chatID) {
         entity = new FoodCalculationEntity();
         entity.setChatID(chatID);
@@ -83,6 +89,7 @@ public class FoodCalculationService {
         entity.setAllowedEntryFoodAmount(false);
         repository.save(entity);
     }
+
     public void setFoodType(String type, Long chatID) {
         if (isEntityExists(chatID)) {
             var lastEntry = findLastEntryByChatID(chatID);
@@ -92,6 +99,7 @@ public class FoodCalculationService {
 
         }
     }
+
     public void setFoodAmount(int amount, Long chatID) {
         if (isEntityExists(chatID)) {
             var lastEntry = findLastEntryByChatID(chatID);
@@ -100,15 +108,19 @@ public class FoodCalculationService {
             repository.save(lastEntry);
         }
     }
+
     public String deleteLastEntry(Long chatID) {
         if (isEntityExists(chatID)) {
             String res = "Я удалил:\n" + parseLocalDateTime(findLastEntryByChatID(chatID).getFeedTime()) + EmojiParser.parseToUnicode(" :o:");
-            repository.deleteById(findLastEntryByChatID(chatID).getId());
-            return res;
-        } else {
-            return NOTHING_TO_DELETE_MESSAGE;
+            FoodCalculationEntity entity = findLastEntryByChatID(chatID);
+            if (entity.getFeedTime().getDayOfMonth() == LocalDate.now().getDayOfMonth()) {
+                repository.deleteById(entity.getId());
+                return res;
+            }
         }
+        return NOTHING_TO_DELETE_MESSAGE;
     }
+
     public String showAllEntriesForSomeDay(Long chatID, String yesterdayORToday) {
         LocalDateTime startDate;
         LocalDateTime finishDate;
@@ -147,6 +159,7 @@ public class FoodCalculationService {
             return sb.toString().strip();
         }
     }
+
     public String showAllEntriesForCertainDays(Long chatID, int daysToShow) {
 
         LocalDateTime startDate = LocalDateTime.of(LocalDate.now().minusDays(daysToShow), LocalTime.MIDNIGHT);
@@ -201,12 +214,14 @@ public class FoodCalculationService {
         }
 
     }
+
     public void eraseAllDataForTheUserByChatID(Long chatID) {
         var getIDsToDelete = findAllEntriesByChatID(chatID);
         for (FoodCalculationEntity entity : getIDsToDelete) {
             repository.deleteById(entity.getId());
         }
     }
+
     public boolean getAllowanceToAddAmount(Long chatID) {
         if (isEntityExists(chatID)) {
             var lastEntry = findLastEntryByChatID(chatID);
